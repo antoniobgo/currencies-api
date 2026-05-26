@@ -41,11 +41,11 @@ public class CurrencyQuote {
     @Column(nullable = false, precision = 18, scale = 6)
     private BigDecimal ask;
 
-    @Column(nullable = false, precision = 10, scale = 6)
-    private BigDecimal varBid;
+    @Column(nullable = false)
+    private Double varBid;
 
-    @Column(nullable = false, precision = 10, scale = 6)
-    private BigDecimal pctChange;
+    @Column(nullable = false)
+    private Double pctChange;
 
     @Column(nullable = false)
     private LocalDateTime quotedAt; // mapeado do "timestamp" da API
@@ -120,19 +120,19 @@ public class CurrencyQuote {
         this.ask = ask;
     }
 
-    public BigDecimal getVarBid() {
+    public Double getVarBid() {
         return varBid;
     }
 
-    public void setVarBid(BigDecimal varBid) {
+    public void setVarBid(Double varBid) {
         this.varBid = varBid;
     }
 
-    public BigDecimal getPctChange() {
+    public Double getPctChange() {
         return pctChange;
     }
 
-    public void setPctChange(BigDecimal pctChange) {
+    public void setPctChange(Double pctChange) {
         this.pctChange = pctChange;
     }
 

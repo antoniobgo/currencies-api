@@ -1,0 +1,26 @@
+package com.atwo.currencies_api.currency.client;
+
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClient;
+import com.atwo.currencies_api.currency.dtos.AwesomeApiQuoteDTO;
+
+@Component
+public class AwesomeApiClient {
+
+    private final RestClient restClient;
+
+    public AwesomeApiClient(RestClient.Builder builder) {
+        this.restClient = builder.baseUrl("https://economia.awesomeapi.com.br/json/last").build();
+    }
+
+    public Map<String, AwesomeApiQuoteDTO> fetchQuotes(List<String> codes) {
+        String pairs = codes.stream().map(code -> code + "-BRL").collect(Collectors.joining(","));
+
+        return restClient.get().uri("/{pairs}", pairs).retrieve()
+                .body(new ParameterizedTypeReference<Map<String, AwesomeApiQuoteDTO>>() {});
+    }
+}
