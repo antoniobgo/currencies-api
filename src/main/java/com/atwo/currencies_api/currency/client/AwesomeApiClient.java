@@ -47,6 +47,7 @@ public class AwesomeApiClient {
             LocalDate end) {
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyyMMdd");
 
+        logger.info("Fazendo chamada: start: {}, end: {}, code: {}", start, end, code);
         return restClient.get().uri(
                 "https://economia.awesomeapi.com.br/json/daily/{pair}/360?start_date={start}&end_date={end}",
                 code + "-BRL", start.format(fmt), end.format(fmt)).retrieve()

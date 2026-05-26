@@ -11,13 +11,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import com.atwo.currencies_api.currency.client.AwesomeApiClient;
 import com.atwo.currencies_api.currency.dtos.AwesomeApiQuoteDTO;
 import com.atwo.currencies_api.currency.entities.CurrencyQuote;
 import com.atwo.currencies_api.currency.entities.MonitoredCurrency;
 import com.atwo.currencies_api.currency.repositories.CurrencyQuoteRepository;
 import com.atwo.currencies_api.currency.repositories.MonitoredCurrencyRepository;
+import jakarta.transaction.Transactional;
 
 @Service
 public class QuoteService {
@@ -111,11 +111,14 @@ public class QuoteService {
 
     private void fetchAndSaveHistorical(List<String> codes, LocalDate start, LocalDate end) {
         for (String code : codes) {
+            logger.info("Iniciando initializer task com start: {}, end: {}, code: {}", start, end,
+                    code);
             try {
                 List<AwesomeApiQuoteDTO> quotes =
                         awesomeApiClient.fetchHistoricalQuotes(code, start, end);
 
-                List<CurrencyQuote> entities = quotes.stream().map(this::toEntity).toList();
+                List<CurrencyQuote> entities =
+                        quotes.stream().filter(this::isValidQuote).map(this::toEntity).toList();
 
                 quoteRepository.saveAll(entities);
                 logger.info("Histórico salvo: moeda={}, inicio={}, fim={}, registros={}", code,
@@ -126,5 +129,11 @@ public class QuoteService {
                         start, end, e.getMessage());
             }
         }
+    }
+
+    private boolean isValidQuote(AwesomeApiQuoteDTO dto) {
+        return dto.code() != null && dto.bid() != null && dto.ask() != null && dto.high() != null
+                && dto.low() != null && dto.varBid() != null && dto.pctChange() != null
+                && dto.timestamp() != null;
     }
 }
