@@ -6,6 +6,9 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.atwo.currencies_api.currency.client.AwesomeApiClient;
@@ -25,6 +28,8 @@ public class QuoteService {
     private LocalDateTime lastSyncAt;
     private int lastSyncCount;
 
+    private static final Logger logger = LoggerFactory.getLogger(AwesomeApiClient.class);
+
     public QuoteService(AwesomeApiClient awesomeApiClient, CurrencyQuoteRepository quoteRepository,
             MonitoredCurrencyRepository monitoredCurrencyRepository) {
         this.awesomeApiClient = awesomeApiClient;
@@ -32,9 +37,10 @@ public class QuoteService {
         this.monitoredCurrencyRepository = monitoredCurrencyRepository;
     }
 
-    // @Scheduled(fixedDelay = 300000)
+    @Scheduled(fixedDelay = 30000)
     @Transactional
     public void sync() {
+        logger.info("Iniciando scheduled task");
         List<String> codes = monitoredCurrencyRepository.findAll().stream()
                 .map(MonitoredCurrency::getCode).toList();
 
