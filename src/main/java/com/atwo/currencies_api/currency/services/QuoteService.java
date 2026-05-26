@@ -2,6 +2,7 @@ package com.atwo.currencies_api.currency.services;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -57,6 +58,29 @@ public class QuoteService {
         lastSyncCount = entities.size();
     }
 
+    public void initializeHistoryIfNeeded() {
+        LocalDate oldest =
+                quoteRepository.findOldestQuoteDate().map(LocalDateTime::toLocalDate).orElse(null);
+        LocalDate fiveYearsAgo = LocalDate.now().minusYears(5);
+
+        if (oldest != null && !oldest.isAfter(fiveYearsAgo))
+            return;
+
+        List<String> codes = monitoredCurrencyRepository.findAll().stream()
+                .map(MonitoredCurrency::getCode).toList();
+
+        LocalDate end = LocalDate.now();
+        LocalDate start = end.minusDays(360);
+
+        while (end.isAfter(fiveYearsAgo)) {
+            if (start.isBefore(fiveYearsAgo))
+                start = fiveYearsAgo;
+            fetchAndSaveHistorical(codes, start, end);
+            end = start.minusDays(1);
+            start = end.minusDays(360);
+        }
+    }
+
     public LocalDateTime getLastSyncAt() {
         return lastSyncAt;
     }
@@ -83,5 +107,24 @@ public class QuoteService {
     private LocalDateTime parseTimestamp(String timestamp) {
         return Instant.ofEpochSecond(Long.parseLong(timestamp))
                 .atZone(ZoneId.of("America/Sao_Paulo")).toLocalDateTime();
+    }
+
+    private void fetchAndSaveHistorical(List<String> codes, LocalDate start, LocalDate end) {
+        for (String code : codes) {
+            try {
+                List<AwesomeApiQuoteDTO> quotes =
+                        awesomeApiClient.fetchHistoricalQuotes(code, start, end);
+
+                List<CurrencyQuote> entities = quotes.stream().map(this::toEntity).toList();
+
+                quoteRepository.saveAll(entities);
+                logger.info("Histórico salvo: moeda={}, inicio={}, fim={}, registros={}", code,
+                        start, end, entities.size());
+
+            } catch (Exception e) {
+                logger.error("Erro ao buscar histórico: moeda={}, inicio={}, fim={}: {}", code,
+                        start, end, e.getMessage());
+            }
+        }
     }
 }

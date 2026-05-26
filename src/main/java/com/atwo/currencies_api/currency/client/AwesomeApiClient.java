@@ -1,5 +1,7 @@
 package com.atwo.currencies_api.currency.client;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -39,5 +41,15 @@ public class AwesomeApiClient {
             logger.error("AwesomeAPI indisponível: {}", e.getMessage());
             return Map.of();
         }
+    }
+
+    public List<AwesomeApiQuoteDTO> fetchHistoricalQuotes(String code, LocalDate start,
+            LocalDate end) {
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyyMMdd");
+
+        return restClient.get().uri(
+                "https://economia.awesomeapi.com.br/json/daily/{pair}/360?start_date={start}&end_date={end}",
+                code + "-BRL", start.format(fmt), end.format(fmt)).retrieve()
+                .body(new ParameterizedTypeReference<List<AwesomeApiQuoteDTO>>() {});
     }
 }
