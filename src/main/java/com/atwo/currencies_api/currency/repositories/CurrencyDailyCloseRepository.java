@@ -13,7 +13,7 @@ public interface CurrencyDailyCloseRepository extends JpaRepository<CurrencyDail
     List<CurrencyDailyClose> findByCodeAndDateBetweenOrderByDateAsc(String code, LocalDate start,
             LocalDate end);
 
-    Optional<CurrencyDailyClose> findTopByOrderByDateAsc();
+    Optional<CurrencyDailyClose> findTopByCodeOrderByDateAsc(String code);
 
     boolean existsByCodeAndDate(String code, LocalDate date);
 }
