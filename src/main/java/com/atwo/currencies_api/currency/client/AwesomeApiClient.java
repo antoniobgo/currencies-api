@@ -48,9 +48,21 @@ public class AwesomeApiClient {
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyyMMdd");
 
         logger.info("Fazendo chamada: start: {}, end: {}, code: {}", start, end, code);
-        return restClient.get().uri(
+        // return restClient.get().uri(
+        // "https://economia.awesomeapi.com.br/json/daily/{pair}/360?start_date={start}&end_date={end}",
+        // code + "-BRL", start.format(fmt), end.format(fmt)).retrieve()
+        // .body(new ParameterizedTypeReference<List<AwesomeApiQuoteDTO>>() {});
+
+        List<AwesomeApiQuoteDTO> quotes = restClient.get().uri(
                 "https://economia.awesomeapi.com.br/json/daily/{pair}/360?start_date={start}&end_date={end}",
                 code + "-BRL", start.format(fmt), end.format(fmt)).retrieve()
                 .body(new ParameterizedTypeReference<List<AwesomeApiQuoteDTO>>() {});
+
+        return quotes.stream()
+                .map(dto -> dto.code() != null ? dto
+                        : new AwesomeApiQuoteDTO(quotes.get(0).code(), quotes.get(0).codein(),
+                                quotes.get(0).name(), dto.high(), dto.low(), dto.bid(), dto.ask(),
+                                dto.varBid(), dto.pctChange(), dto.timestamp()))
+                .toList();
     }
 }

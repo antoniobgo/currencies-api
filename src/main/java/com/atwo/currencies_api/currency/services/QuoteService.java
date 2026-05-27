@@ -2,14 +2,12 @@ package com.atwo.currencies_api.currency.services;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import com.atwo.currencies_api.currency.client.AwesomeApiClient;
 import com.atwo.currencies_api.currency.dtos.AwesomeApiQuoteDTO;
@@ -38,7 +36,7 @@ public class QuoteService {
         this.monitoredCurrencyRepository = monitoredCurrencyRepository;
     }
 
-    @Scheduled(fixedDelay = 30000)
+    // @Scheduled(fixedDelay = 30000)
     @Transactional
     public void sync() {
         logger.info("Iniciando scheduled task");
@@ -56,29 +54,6 @@ public class QuoteService {
 
         lastSyncAt = LocalDateTime.now();
         lastSyncCount = entities.size();
-    }
-
-    public void initializeHistoryIfNeeded() {
-        LocalDate oldest =
-                quoteRepository.findOldestQuoteDate().map(LocalDateTime::toLocalDate).orElse(null);
-        LocalDate fiveYearsAgo = LocalDate.now().minusYears(5);
-
-        if (oldest != null && !oldest.isAfter(fiveYearsAgo))
-            return;
-
-        List<String> codes = monitoredCurrencyRepository.findAll().stream()
-                .map(MonitoredCurrency::getCode).toList();
-
-        LocalDate end = LocalDate.now();
-        LocalDate start = end.minusDays(360);
-
-        while (end.isAfter(fiveYearsAgo)) {
-            if (start.isBefore(fiveYearsAgo))
-                start = fiveYearsAgo;
-            fetchAndSaveHistorical(codes, start, end);
-            end = start.minusDays(1);
-            start = end.minusDays(360);
-        }
     }
 
     public LocalDateTime getLastSyncAt() {
@@ -107,33 +82,5 @@ public class QuoteService {
     private LocalDateTime parseTimestamp(String timestamp) {
         return Instant.ofEpochSecond(Long.parseLong(timestamp))
                 .atZone(ZoneId.of("America/Sao_Paulo")).toLocalDateTime();
-    }
-
-    private void fetchAndSaveHistorical(List<String> codes, LocalDate start, LocalDate end) {
-        for (String code : codes) {
-            logger.info("Iniciando initializer task com start: {}, end: {}, code: {}", start, end,
-                    code);
-            try {
-                List<AwesomeApiQuoteDTO> quotes =
-                        awesomeApiClient.fetchHistoricalQuotes(code, start, end);
-
-                List<CurrencyQuote> entities =
-                        quotes.stream().filter(this::isValidQuote).map(this::toEntity).toList();
-
-                quoteRepository.saveAll(entities);
-                logger.info("Histórico salvo: moeda={}, inicio={}, fim={}, registros={}", code,
-                        start, end, entities.size());
-
-            } catch (Exception e) {
-                logger.error("Erro ao buscar histórico: moeda={}, inicio={}, fim={}: {}", code,
-                        start, end, e.getMessage());
-            }
-        }
-    }
-
-    private boolean isValidQuote(AwesomeApiQuoteDTO dto) {
-        return dto.code() != null && dto.bid() != null && dto.ask() != null && dto.high() != null
-                && dto.low() != null && dto.varBid() != null && dto.pctChange() != null
-                && dto.timestamp() != null;
     }
 }
