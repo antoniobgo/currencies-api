@@ -1,10 +1,13 @@
 package com.atwo.currencies_api.currency.services;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.Comparator;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -12,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import com.atwo.currencies_api.currency.client.AwesomeApiClient;
 import com.atwo.currencies_api.currency.dtos.AwesomeApiQuoteDTO;
+import com.atwo.currencies_api.currency.dtos.SummaryDTO;
 import com.atwo.currencies_api.currency.entities.CurrencyDailyClose;
 import com.atwo.currencies_api.currency.entities.MonitoredCurrency;
 import com.atwo.currencies_api.currency.repositories.CurrencyDailyCloseRepository;
@@ -86,6 +90,39 @@ public class DailyCloseService {
                         start, end, e.getMessage());
             }
         }
+    }
+
+    public List<CurrencyDailyClose> findHistory(String code, LocalDate start, LocalDate end) {
+        LocalDate effectiveStart = start != null ? start : LocalDate.now().minusYears(1);
+        LocalDate effectiveEnd = end != null ? end : LocalDate.now();
+        return dailyCloseRepository.findByCodeAndDateBetweenOrderByDateAsc(code, effectiveStart,
+                effectiveEnd);
+    }
+
+    public SummaryDTO findSummary(String code, int days) {
+        LocalDate end = LocalDate.now();
+        LocalDate start = end.minusDays(days);
+
+        List<CurrencyDailyClose> closes =
+                dailyCloseRepository.findByCodeAndDateBetweenOrderByDateAsc(code, start, end);
+
+        if (closes.isEmpty())
+            throw new NoSuchElementException("Sem dados para: " + code);
+
+        BigDecimal max = closes.stream().map(CurrencyDailyClose::getHigh)
+                .max(Comparator.naturalOrder()).orElseThrow();
+        BigDecimal min = closes.stream().map(CurrencyDailyClose::getLow)
+                .min(Comparator.naturalOrder()).orElseThrow();
+        BigDecimal avg = closes.stream().map(CurrencyDailyClose::getBid)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .divide(BigDecimal.valueOf(closes.size()), 6, RoundingMode.HALF_UP);
+
+        CurrencyDailyClose first = closes.get(0);
+        CurrencyDailyClose last = closes.get(closes.size() - 1);
+        double pctChange = ((last.getBid().doubleValue() - first.getBid().doubleValue())
+                / first.getBid().doubleValue()) * 100;
+
+        return new SummaryDTO(code, max, min, avg, pctChange, start, end);
     }
 
     private boolean isValidQuote(AwesomeApiQuoteDTO dto) {

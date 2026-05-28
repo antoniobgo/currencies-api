@@ -2,12 +2,16 @@ package com.atwo.currencies_api.currency.services;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import com.atwo.currencies_api.currency.client.AwesomeApiClient;
 import com.atwo.currencies_api.currency.dtos.AwesomeApiQuoteDTO;
@@ -36,7 +40,7 @@ public class QuoteService {
         this.monitoredCurrencyRepository = monitoredCurrencyRepository;
     }
 
-    // @Scheduled(fixedDelay = 30000)
+    @Scheduled(fixedDelay = 30000)
     @Transactional
     public void sync() {
         logger.info("Iniciando scheduled task");
@@ -54,6 +58,40 @@ public class QuoteService {
 
         lastSyncAt = LocalDateTime.now();
         lastSyncCount = entities.size();
+    }
+
+    public List<CurrencyQuote> findAllLatest() {
+        List<String> codes = monitoredCurrencyRepository.findAll().stream()
+                .map(MonitoredCurrency::getCode).toList();
+
+        return codes.stream().map(quoteRepository::findTopByCodeOrderByQuotedAtDesc)
+                .filter(Optional::isPresent).map(Optional::get).toList();
+    }
+
+    public CurrencyQuote findLatestByCode(String code) {
+        return quoteRepository.findTopByCodeOrderByQuotedAtDesc(code)
+                .orElseThrow(() -> new NoSuchElementException("Cotação não encontrada: " + code));
+    }
+
+    public List<CurrencyQuote> findTodayAll() {
+        List<String> codes = monitoredCurrencyRepository.findAll().stream()
+                .map(MonitoredCurrency::getCode).toList();
+
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime now = LocalDateTime.now();
+
+        return codes.stream()
+                .flatMap(code -> quoteRepository
+                        .findByCodeAndQuotedAtBetweenOrderByQuotedAtAsc(code, startOfDay, now)
+                        .stream())
+                .toList();
+    }
+
+    public List<CurrencyQuote> findTodayByCode(String code) {
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime now = LocalDateTime.now();
+        return quoteRepository.findByCodeAndQuotedAtBetweenOrderByQuotedAtAsc(code, startOfDay,
+                now);
     }
 
     public LocalDateTime getLastSyncAt() {
