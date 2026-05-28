@@ -60,15 +60,6 @@ public class DailyCloseService {
         }
     }
 
-    // public void saveClose(CurrencyQuote quote) {
-    // if (dailyCloseRepository.existsByCodeAndDate(quote.getCode(),
-    // quote.getQuotedAt().toLocalDate()))
-    // return;
-
-    // CurrencyDailyClose close = toEntity(quote);
-    // dailyCloseRepository.save(close);
-    // }
-
     private void fetchAndSaveHistorical(List<String> codes, LocalDate start, LocalDate end) {
         for (String code : codes) {
             try {
@@ -117,21 +108,6 @@ public class DailyCloseService {
                 .atZone(ZoneId.of("America/Sao_Paulo")).toLocalDate());
         return close;
     }
-
-    // private CurrencyDailyClose toEntity(CurrencyQuote quote) {
-    // CurrencyDailyClose close = new CurrencyDailyClose();
-    // close.setCode(quote.getCode());
-    // close.setCodeIn(quote.getCodeIn());
-    // close.setName(quote.getName());
-    // close.setHigh(quote.getHigh());
-    // close.setLow(quote.getLow());
-    // close.setBid(quote.getBid());
-    // close.setAsk(quote.getAsk());
-    // close.setVarBid(quote.getVarBid());
-    // close.setPctChange(quote.getPctChange());
-    // close.setDate(quote.getQuotedAt().toLocalDate());
-    // return close;
-    // }
 
 
 }
