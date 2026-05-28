@@ -39,58 +39,55 @@ public class DailyCloseService {
         this.awesomeApiClient = awesomeApiClient;
     }
 
-    public void initializeHistoryIfNeeded() {
+    public void importFullHistory() {
         List<String> codes = monitoredCurrencyRepository.findAll().stream()
                 .map(MonitoredCurrency::getCode).toList();
 
         LocalDate fiveYearsAgo = LocalDate.now().minusYears(5);
+        LocalDate today = LocalDate.now();
 
         for (String code : codes) {
-            LocalDate oldest = dailyCloseRepository.findTopByCodeOrderByDateAsc(code)
-                    .map(CurrencyDailyClose::getDate).orElse(null);
-
-            if (oldest != null && !oldest.isAfter(fiveYearsAgo))
-                continue; // essa moeda já tem histórico completo
-
-            LocalDate end = (oldest != null) ? oldest.minusDays(1) : LocalDate.now();
+            LocalDate end = today;
             LocalDate start = end.minusDays(360);
 
             while (end.isAfter(fiveYearsAgo)) {
                 if (start.isBefore(fiveYearsAgo))
                     start = fiveYearsAgo;
-                fetchAndSaveHistorical(List.of(code), start, end);
+                fetchAndSaveHistorical(code, start, end);
                 end = start.minusDays(1);
                 start = end.minusDays(360);
             }
+
+            logger.info("Histórico completo importado: code={}", code);
         }
     }
 
-    private void fetchAndSaveHistorical(List<String> codes, LocalDate start, LocalDate end) {
-        for (String code : codes) {
-            try {
-                List<AwesomeApiQuoteDTO> quotes =
-                        awesomeApiClient.fetchHistoricalQuotes(code, start, end);
+    private void fetchAndSaveHistorical(String code, LocalDate start, LocalDate end) {
 
-                Set<LocalDate> existing = dailyCloseRepository
-                        .findByCodeAndDateBetweenOrderByDateAsc(code, start, end).stream()
-                        .map(CurrencyDailyClose::getDate).collect(Collectors.toSet());
+        try {
+            List<AwesomeApiQuoteDTO> quotes =
+                    awesomeApiClient.fetchHistoricalQuotes(code, start, end);
 
-                List<CurrencyDailyClose> toSave = quotes.stream().filter(this::isValidQuote)
-                        .map(this::toEntity).filter(e -> !existing.contains(e.getDate()))
-                        .collect(Collectors.toMap(CurrencyDailyClose::getDate, e -> e, (a, b) -> a))
-                        .values().stream().toList();
+            Set<LocalDate> existing =
+                    dailyCloseRepository.findByCodeAndDateBetweenOrderByDateAsc(code, start, end)
+                            .stream().map(CurrencyDailyClose::getDate).collect(Collectors.toSet());
 
-                if (!toSave.isEmpty())
-                    dailyCloseRepository.saveAll(toSave);
+            List<CurrencyDailyClose> toSave = quotes.stream().filter(this::isValidQuote)
+                    .map(this::toEntity).filter(e -> !existing.contains(e.getDate()))
+                    .collect(Collectors.toMap(CurrencyDailyClose::getDate, e -> e, (a, b) -> a))
+                    .values().stream().toList();
 
-                logger.info("Histórico salvo: moeda={}, inicio={}, fim={}, registros={}", code,
-                        start, end, toSave.size());
+            if (!toSave.isEmpty())
+                dailyCloseRepository.saveAll(toSave);
 
-            } catch (Exception e) {
-                logger.error("Erro ao buscar histórico: moeda={}, inicio={}, fim={}: {}", code,
-                        start, end, e.getMessage());
-            }
+            logger.info("Histórico salvo: moeda={}, inicio={}, fim={}, registros={}", code, start,
+                    end, toSave.size());
+
+        } catch (Exception e) {
+            logger.error("Erro ao buscar histórico: moeda={}, inicio={}, fim={}: {}", code, start,
+                    end, e.getMessage());
         }
+
     }
 
     public List<CurrencyDailyClose> findHistory(String code, LocalDate start, LocalDate end) {
