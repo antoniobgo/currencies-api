@@ -18,4 +18,7 @@ public interface CurrencyQuoteRepository extends JpaRepository<CurrencyQuote, Lo
 
     @Query("SELECT MIN(q.quotedAt) FROM CurrencyQuote q")
     Optional<LocalDateTime> findOldestQuoteDate();
+
+    void deleteByQuotedAtBetween(LocalDateTime start, LocalDateTime end);
+
 }

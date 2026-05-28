@@ -17,6 +17,7 @@ import com.atwo.currencies_api.currency.client.AwesomeApiClient;
 import com.atwo.currencies_api.currency.dtos.AwesomeApiQuoteDTO;
 import com.atwo.currencies_api.currency.dtos.SummaryDTO;
 import com.atwo.currencies_api.currency.entities.CurrencyDailyClose;
+import com.atwo.currencies_api.currency.entities.CurrencyQuote;
 import com.atwo.currencies_api.currency.entities.MonitoredCurrency;
 import com.atwo.currencies_api.currency.repositories.CurrencyDailyCloseRepository;
 import com.atwo.currencies_api.currency.repositories.MonitoredCurrencyRepository;
@@ -123,6 +124,29 @@ public class DailyCloseService {
                 / first.getBid().doubleValue()) * 100;
 
         return new SummaryDTO(code, max, min, avg, pctChange, start, end);
+    }
+
+    public void saveClose(CurrencyQuote quote) {
+        LocalDate date = quote.getQuotedAt().toLocalDate();
+
+        if (dailyCloseRepository.existsByCodeAndDate(quote.getCode(), date))
+            return;
+
+        CurrencyDailyClose close = new CurrencyDailyClose();
+        close.setCode(quote.getCode());
+        close.setCodeIn(quote.getCodeIn());
+        close.setName(quote.getName());
+        close.setHigh(quote.getHigh());
+        close.setLow(quote.getLow());
+        close.setBid(quote.getBid());
+        close.setAsk(quote.getAsk());
+        close.setVarBid(quote.getVarBid());
+        close.setPctChange(quote.getPctChange());
+        close.setDate(date);
+
+        dailyCloseRepository.save(close);
+        logger.info("Fechamento salvo: code={}, date={}, bid={}", quote.getCode(), date,
+                quote.getBid());
     }
 
     private boolean isValidQuote(AwesomeApiQuoteDTO dto) {

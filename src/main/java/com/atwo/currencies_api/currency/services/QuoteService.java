@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +28,7 @@ public class QuoteService {
     private final AwesomeApiClient awesomeApiClient;
     private final CurrencyQuoteRepository quoteRepository;
     private final MonitoredCurrencyRepository monitoredCurrencyRepository;
+    private final DailyCloseService dailyCloseService;
 
     private LocalDateTime lastSyncAt;
     private int lastSyncCount;
@@ -34,13 +36,15 @@ public class QuoteService {
     private static final Logger logger = LoggerFactory.getLogger(AwesomeApiClient.class);
 
     public QuoteService(AwesomeApiClient awesomeApiClient, CurrencyQuoteRepository quoteRepository,
-            MonitoredCurrencyRepository monitoredCurrencyRepository) {
+            MonitoredCurrencyRepository monitoredCurrencyRepository,
+            DailyCloseService dailyCloseService) {
         this.awesomeApiClient = awesomeApiClient;
         this.quoteRepository = quoteRepository;
         this.monitoredCurrencyRepository = monitoredCurrencyRepository;
+        this.dailyCloseService = dailyCloseService;
     }
 
-    @Scheduled(fixedDelay = 30000)
+    @Scheduled(cron = "0 0/5 9-19 * * MON-FRI", zone = "America/Sao_Paulo")
     @Transactional
     public void sync() {
         logger.info("Iniciando scheduled task");
@@ -50,14 +54,38 @@ public class QuoteService {
         if (codes.isEmpty())
             return;
 
-        Map<String, AwesomeApiQuoteDTO> quotes = awesomeApiClient.fetchQuotes(codes);
+        LocalTime now = LocalTime.now(ZoneId.of("America/Sao_Paulo"));
+        boolean isOpeningCycle = now.getHour() == 9 && now.getMinute() < 5;
+        boolean isClosingCycle = now.getHour() == 18;
 
-        List<CurrencyQuote> entities = quotes.values().stream().map(this::toEntity).toList();
+        if (isOpeningCycle) {
+            logger.info("iniciando rotina de inicio de ciclo diario");
+            LocalDate yesterday = LocalDate.now(ZoneId.of("America/Sao_Paulo")).minusDays(1);
+            LocalDateTime start = yesterday.atStartOfDay();
+            LocalDateTime end = yesterday.atTime(LocalTime.MAX);
 
-        quoteRepository.saveAll(entities);
+            // salva fechamento antes de deletar
+            codes.forEach(code -> quoteRepository.findTopByCodeOrderByQuotedAtDesc(code)
+                    .ifPresent(dailyCloseService::saveClose));
 
-        lastSyncAt = LocalDateTime.now();
-        lastSyncCount = entities.size();
+            logger.info("deletando registros de intraday do dia anterior");
+            quoteRepository.deleteByQuotedAtBetween(start, end);
+
+        }
+        if (isClosingCycle) {
+            // retornar algo dizendo que o dia está fechado
+        } else {
+            Map<String, AwesomeApiQuoteDTO> quotes = awesomeApiClient.fetchQuotes(codes);
+
+            List<CurrencyQuote> entities = quotes.values().stream().map(this::toEntity).toList();
+
+            quoteRepository.saveAll(entities);
+
+            lastSyncAt = LocalDateTime.now();
+            lastSyncCount = entities.size();
+        }
+
+
     }
 
     public List<CurrencyQuote> findAllLatest() {
