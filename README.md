@@ -42,7 +42,7 @@ As tabelas são criadas automaticamente pelo Hibernate na primeira execução (`
 **1. Clone o repositório:**
 
 ```bash
-git clone https://github.com/seu-usuario/currencies-api.git
+git clone https://github.com/antoniobgo/currencies-api.git
 cd currencies-api
 ```
 
