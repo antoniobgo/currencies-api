@@ -74,6 +74,7 @@ public class DailyCloseService {
 
             List<CurrencyDailyClose> toSave = quotes.stream().filter(this::isValidQuote)
                     .map(this::toEntity).filter(e -> !existing.contains(e.getDate()))
+                    .filter(e -> !e.getDate().isBefore(start) && !e.getDate().isAfter(end))
                     .collect(Collectors.toMap(CurrencyDailyClose::getDate, e -> e, (a, b) -> a))
                     .values().stream().toList();
 
