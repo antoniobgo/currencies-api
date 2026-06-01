@@ -44,7 +44,7 @@ public class QuoteService {
         this.dailyCloseService = dailyCloseService;
     }
 
-    @Scheduled(cron = "0 0/5 9-19 * * MON-FRI", zone = "America/Sao_Paulo")
+    @Scheduled(cron = "0 0/5 9-18 * * MON-FRI", zone = "America/Sao_Paulo")
     @Transactional
     public void sync() {
         // TODO: adicionar na tabela de moedas os horarios de fechamento para cada moeda para
