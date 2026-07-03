@@ -13,17 +13,27 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
+import com.atwo.currencies_api.currency.config.AwesomeApiProperties;
 import com.atwo.currencies_api.currency.dtos.AwesomeApiQuoteDTO;
 
 @Component
 public class AwesomeApiClient {
 
     private final RestClient restClient;
+    private final String baseUrl;
+    private final String apiKey;
 
     private static final Logger logger = LoggerFactory.getLogger(AwesomeApiClient.class);
 
-    public AwesomeApiClient(RestClient.Builder builder) {
-        this.restClient = builder.baseUrl("https://economia.awesomeapi.com.br/json/last").build();
+    public AwesomeApiClient(RestClient.Builder builder, AwesomeApiProperties properties) {
+        this.baseUrl = properties.baseUrl();
+        this.apiKey = properties.apiKey();
+        this.restClient = builder.baseUrl(this.baseUrl).defaultHeader("x-api-key", this.apiKey)
+                .requestInterceptor((request, body, execution) -> {
+                    logger.debug("→ {} {}", request.getMethod(), request.getURI());
+                    logger.debug("Headers: {}", request.getHeaders());
+                    return execution.execute(request, body);
+                }).build();
     }
 
     // TODO: analisar error handling
@@ -31,7 +41,8 @@ public class AwesomeApiClient {
         String pairs = codes.stream().map(code -> code + "-BRL").collect(Collectors.joining(","));
 
         try {
-            return restClient.get().uri("/{pairs}", pairs).retrieve()
+
+            return restClient.get().uri("/last/{pairs}", pairs).retrieve()
                     .body(new ParameterizedTypeReference<Map<String, AwesomeApiQuoteDTO>>() {});
         } catch (HttpClientErrorException | HttpServerErrorException e) {
             logger.error("Erro ao buscar cotações na AwesomeAPI: status={}, body={}",
@@ -49,10 +60,11 @@ public class AwesomeApiClient {
 
         logger.info("Fazendo chamada: start: {}, end: {}, code: {}", start, end, code);
 
-        List<AwesomeApiQuoteDTO> quotes = restClient.get().uri(
-                "https://economia.awesomeapi.com.br/json/daily/{pair}/360?start_date={start}&end_date={end}",
-                code + "-BRL", start.format(fmt), end.format(fmt)).retrieve()
-                .body(new ParameterizedTypeReference<List<AwesomeApiQuoteDTO>>() {});
+        List<AwesomeApiQuoteDTO> quotes = restClient.get()
+                .uri("/daily/{pair}/360?start_date={start}&end_date={end}", code + "-BRL",
+                        start.format(fmt), end.format(fmt))
+                .retrieve().body(new ParameterizedTypeReference<List<AwesomeApiQuoteDTO>>() {});
+
 
         return quotes.stream()
                 .map(dto -> dto.code() != null ? dto
