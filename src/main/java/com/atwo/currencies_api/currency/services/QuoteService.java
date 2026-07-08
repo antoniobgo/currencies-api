@@ -47,7 +47,8 @@ public class QuoteService {
     @Scheduled(cron = "0 0/5 9-18 * * MON-FRI", zone = "America/Sao_Paulo")
     @Transactional
     public void sync() {
-        // TODO: adicionar na tabela de moedas os horarios de fechamento para cada moeda para
+        // TODO: adicionar na tabela de monitoredcurrencies os horarios de fechamento para cada
+        // moeda para
         // utilizar nessa lógica
         logger.info("Iniciando scheduled task");
         List<String> codes = monitoredCurrencyRepository.findAll().stream()
