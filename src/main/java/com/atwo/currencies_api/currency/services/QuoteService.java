@@ -47,9 +47,6 @@ public class QuoteService {
     @Scheduled(cron = "0 0/5 9-18 * * MON-FRI", zone = "America/Sao_Paulo")
     @Transactional
     public void sync() {
-        // TODO: adicionar na tabela de monitoredcurrencies os horarios de fechamento para cada
-        // moeda para
-        // utilizar nessa lógica
         logger.info("Iniciando scheduled task");
         List<String> codes = monitoredCurrencyRepository.findAll().stream()
                 .map(MonitoredCurrency::getCode).toList();
@@ -71,12 +68,15 @@ public class QuoteService {
             codes.forEach(code -> quoteRepository.findTopByCodeOrderByQuotedAtDesc(code)
                     .ifPresent(dailyCloseService::saveClose));
 
+            // TODO: pensar se faz sentido deletar sempre os registros de intraday
+            // e se faz, se há necessidade de setar o between visto que teoricamente poderia deletar
+            // tudo no opening cycle
             logger.info("deletando registros de intraday do dia anterior");
             quoteRepository.deleteByQuotedAtBetween(start, end);
 
         }
         if (isClosingCycle) {
-            // retornar algo dizendo que o dia está fechado
+            // TODO: retornar algo dizendo que o dia está fechado (faz sentido?)
         } else {
             Map<String, AwesomeApiQuoteDTO> quotes = awesomeApiClient.fetchQuotes(codes);
 
