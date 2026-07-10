@@ -1,6 +1,7 @@
 package com.atwo.currencies_api.currency.services;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -29,6 +30,7 @@ public class QuoteService {
     private final CurrencyQuoteRepository quoteRepository;
     private final MonitoredCurrencyRepository monitoredCurrencyRepository;
     private final DailyCloseService dailyCloseService;
+    private final Clock clock;
 
     private LocalDateTime lastSyncAt;
     private int lastSyncCount;
@@ -37,11 +39,12 @@ public class QuoteService {
 
     public QuoteService(AwesomeApiClient awesomeApiClient, CurrencyQuoteRepository quoteRepository,
             MonitoredCurrencyRepository monitoredCurrencyRepository,
-            DailyCloseService dailyCloseService) {
+            DailyCloseService dailyCloseService, Clock clock) {
         this.awesomeApiClient = awesomeApiClient;
         this.quoteRepository = quoteRepository;
         this.monitoredCurrencyRepository = monitoredCurrencyRepository;
         this.dailyCloseService = dailyCloseService;
+        this.clock = clock;
     }
 
     @Scheduled(cron = "0 0/5 9-18 * * MON-FRI", zone = "America/Sao_Paulo")
@@ -54,13 +57,13 @@ public class QuoteService {
         if (codes.isEmpty())
             return;
 
-        LocalTime now = LocalTime.now(ZoneId.of("America/Sao_Paulo"));
+        LocalTime now = LocalTime.now(clock);
         boolean isOpeningCycle = now.getHour() == 9 && now.getMinute() < 5;
         boolean isClosingCycle = now.getHour() == 18;
 
         if (isOpeningCycle) {
             logger.info("iniciando rotina de inicio de ciclo diario");
-            LocalDate yesterday = LocalDate.now(ZoneId.of("America/Sao_Paulo")).minusDays(1);
+            LocalDate yesterday = LocalDate.now(clock).minusDays(1);
             LocalDateTime start = yesterday.atStartOfDay();
             LocalDateTime end = yesterday.atTime(LocalTime.MAX);
 
@@ -84,7 +87,7 @@ public class QuoteService {
 
             quoteRepository.saveAll(entities);
 
-            lastSyncAt = LocalDateTime.now();
+            lastSyncAt = LocalDateTime.now(clock);
             lastSyncCount = entities.size();
         }
 
