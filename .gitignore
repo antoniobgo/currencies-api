@@ -34,3 +34,6 @@ build/
 
 ### Spring profiles ###
 src/main/resources/application-dev.properties
+
+### Docker ###
+.env
