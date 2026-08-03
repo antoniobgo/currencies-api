@@ -15,8 +15,8 @@ public class CorsConfig {
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/api/**")
                         .allowedOrigins("http://localhost:5173",
-                                "https://currencies-front.antonio-sf-dev.workers.dev") // seu
-                        // frontend
+                                "https://currencies-front.antonio-sf-dev.workers.dev",
+                                "https://diariodeumdev.com", "https://www.diariodeumdev.com")
                         .allowedMethods("GET", "POST", "DELETE").allowedHeaders("*").maxAge(3600);
             }
         };
