@@ -17,6 +17,7 @@ services:
   api:
     build: .
     image: ghcr.io/antoniobgo/currencies-api:latest
+    pull_policy: always
     restart: unless-stopped
     depends_on:
       db:
