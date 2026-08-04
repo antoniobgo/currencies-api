@@ -10,6 +10,7 @@ import com.atwo.currencies_api.currency.services.DailyCloseService;
 @RequestMapping("/api/admin")
 public class AdminController {
     // Comentario para testar pipeline de deploy automatico
+    // Outro comentario para testar pipeline de deploy automatico
     private final DailyCloseService dailyCloseService;
 
     public AdminController(DailyCloseService dailyCloseService) {
