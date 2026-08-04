@@ -16,7 +16,8 @@ public class CorsConfig {
                 registry.addMapping("/api/**")
                         .allowedOrigins("http://localhost:5173",
                                 "https://currencies-front.antonio-sf-dev.workers.dev",
-                                "https://diariodeumdev.com", "https://www.diariodeumdev.com")
+                                "https://diariodeumdev.com", "https://www.diariodeumdev.com",
+                                "https://cotacoins.online", "https://www.cotacoins.online")
                         .allowedMethods("GET", "POST", "DELETE").allowedHeaders("*").maxAge(3600);
             }
         };
