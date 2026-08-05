@@ -31,7 +31,7 @@ public class MonitoredCurrencyService {
         if (repository.existsById(code))
             throw new IllegalStateException("Moeda já monitorada: " + code);
 
-        // valida se a sigla existe na AwesomeAPI
+        // valida se a moeda existe na AwesomeAPI
         Map<String, AwesomeApiQuoteDTO> result = awesomeApiClient.fetchQuotes(List.of(code));
         if (result.isEmpty())
             throw new IllegalArgumentException("Moeda não suportada pela AwesomeAPI: " + code);
