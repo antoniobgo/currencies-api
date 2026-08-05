@@ -7,3 +7,7 @@ spring.jpa.show-sql=true
 # logging.level.com.atwo.currencies_api=DEBUG
 
 awesome-api.api-key=your-key-here
+
+# gerar com o utilitário GenerateAdminPasswordHash (src/test)
+admin.password-hash=your-bcrypt-hash-here
+jwt.secret=a-long-random-dev-only-secret-at-least-32-bytes-long

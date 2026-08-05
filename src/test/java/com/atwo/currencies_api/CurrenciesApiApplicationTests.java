@@ -19,7 +19,7 @@ class CurrenciesApiApplicationTests {
 
 	@DynamicPropertySource
 	static void properties(DynamicPropertyRegistry registry) {
-		registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
+		registry.add("spring.jpa.hibernate.ddl-auto", () -> "create");
 	}
 
 	@Test
