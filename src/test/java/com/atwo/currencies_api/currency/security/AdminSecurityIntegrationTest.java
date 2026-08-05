@@ -102,6 +102,19 @@ class AdminSecurityIntegrationTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
+    @Test
+    void preflightCors_semToken_naoDeveSerBloqueadoPelaSeguranca() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Origin", "https://cotacoins.online");
+        headers.set("Access-Control-Request-Method", "POST");
+
+        ResponseEntity<String> response = restTemplate.exchange(
+                "/api/admin/historico/inicializar", HttpMethod.OPTIONS, new HttpEntity<>(headers),
+                String.class);
+
+        assertThat(response.getStatusCode()).isNotEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
     private String login() {
         ResponseEntity<LoginResponse> response = restTemplate.postForEntity("/api/admin/login",
                 new LoginRequest(SENHA_CORRETA), LoginResponse.class);
