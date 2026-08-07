@@ -115,6 +115,20 @@ class AdminSecurityIntegrationTest {
         assertThat(response.getStatusCode()).isNotEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
+    @Test
+    void rotaProtegida_semTokenValido_deveIncluirHeaderDeCorsMesmoNoErro() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Origin", "https://cotacoins.online");
+        headers.setBearerAuth("token-expirado-ou-invalido");
+
+        ResponseEntity<String> response = restTemplate.exchange("/api/sync", HttpMethod.POST,
+                new HttpEntity<>(headers), String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(response.getHeaders().getAccessControlAllowOrigin())
+                .isEqualTo("https://cotacoins.online");
+    }
+
     private String login() {
         ResponseEntity<LoginResponse> response = restTemplate.postForEntity("/api/admin/login",
                 new LoginRequest(SENHA_CORRETA), LoginResponse.class);
